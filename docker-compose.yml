@@ -1,0 +1,51 @@
+version: '1'
+
+services:
+  db:
+    image: postgres
+    container_name: core-initiative-db
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - PGPORT=${DB_PORT}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-U",
+          "${DB_USER}",
+          "-d",
+          "${DB_NAME}",
+          "-h",
+          "db",
+          "-p",
+          "${DB_PORT}"
+        ]
+      interval: 1s
+      timeout: 60s
+      retries: 60
+
+  main-app:
+    build:
+      context: .
+    container_name: core-initiative-main-app
+    env_file:
+      - .env
+    environment:
+      - DB_SERVICE=db
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080

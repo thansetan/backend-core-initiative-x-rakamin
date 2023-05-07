@@ -33,7 +33,7 @@ func (c *config) ServiceName() string {
 }
 
 func (c *config) ServicePort() int {
-	v := os.Getenv("PORT")
+	v := os.Getenv("APP_PORT")
 	port, _ := strconv.Atoi(v)
 
 	return port
