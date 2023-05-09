@@ -15,6 +15,7 @@ func main() {
 	config := config.NewConfig()
 	server := initServer(config)
 
+	config.CreateAdminPosition()
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)

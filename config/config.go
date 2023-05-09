@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"self-payroll/config/postgres"
+	"self-payroll/model"
 	"strconv"
 
 	"gorm.io/gorm"
@@ -17,6 +18,7 @@ type (
 		ServicePort() int
 		ServiceEnvironment() string
 		Database() *gorm.DB
+		CreateAdminPosition()
 	}
 )
 
@@ -41,4 +43,12 @@ func (c *config) ServicePort() int {
 
 func (c *config) ServiceEnvironment() string {
 	return os.Getenv("ENV")
+}
+
+func (c *config) CreateAdminPosition() {
+	c.Database().Create(&model.Position{
+		ID:     69420,
+		Name:   "Admin",
+		Salary: 0,
+	})
 }

@@ -2,10 +2,8 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"self-payroll/config"
 	"self-payroll/model"
-	"time"
 )
 
 type userRepository struct {
@@ -75,16 +73,11 @@ func (p *userRepository) Fetch(ctx context.Context, limit, offset int) ([]*model
 	return data, nil
 }
 
-func (p *userRepository) CheckLastWithdraw(ctx context.Context, name_id string) error {
-	t := new(model.Transaction)
-	if err := p.Cfg.Database().
-		WithContext(ctx).
-		Where("note LIKE ? and created_at >= ?",
-			fmt.Sprintf("%s%%", name_id),
-			time.Now().AddDate(0, -1, 0)).
-		Last(&t).Error; err != nil {
-		return nil
+func (p *userRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
+	var user *model.User
+
+	if err := p.Cfg.Database().WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
+		return user, err
 	}
-	err := fmt.Errorf("you have withdrawn your salary for this month at %s %d, %d", t.CreatedAt.Month().String(), t.CreatedAt.Day(), t.CreatedAt.Year())
-	return err
+	return user, nil
 }

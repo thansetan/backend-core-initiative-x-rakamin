@@ -5,3 +5,7 @@ type Meta struct {
 	Limit  int   `json:"limit"`
 	Offset int   `json:"offset"`
 }
+
+type LoginResponse struct {
+	Token string `json:"token"`
+}

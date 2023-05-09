@@ -38,8 +38,8 @@ func (c *companyUsecase) CreateOrUpdateCompany(ctx context.Context, req request.
 
 }
 
-func (c *companyUsecase) TopupBalance(ctx context.Context, req request.TopupCompanyBalance) (*model.Company, int, error) {
-	company, err := c.companyRepo.AddBalance(ctx, req.Balance)
+func (c *companyUsecase) TopupBalance(ctx context.Context, userID int, req request.TopupCompanyBalance) (*model.Company, int, error) {
+	company, err := c.companyRepo.AddBalance(ctx, userID, req.Balance)
 	if err != nil {
 		return nil, http.StatusUnprocessableEntity, err
 	}

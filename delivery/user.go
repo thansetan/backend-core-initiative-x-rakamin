@@ -1,10 +1,13 @@
 package delivery
 
 import (
+	"fmt"
 	"net/http"
+	"reflect"
 	"self-payroll/helper"
 	"self-payroll/model"
 	"self-payroll/request"
+	"self-payroll/utils"
 	"strconv"
 
 	validation "github.com/go-ozzo/ozzo-validation"
@@ -24,12 +27,14 @@ func NewUserDelivery(userUsecase model.UserUsecase) UserDelivery {
 }
 
 func (p *userDelivery) Mount(group *echo.Group) {
-	group.GET("", p.FetchUserHandler)
+	group.GET("", p.FetchUserHandler, utils.AuthMiddleware, utils.CheckIsAdmin)
 	group.POST("", p.StoreUserHandler)
-	group.GET("/:id", p.DetailUserHandler)
-	group.DELETE("/:id", p.DeleteUserHandler)
-	group.PATCH("/:id", p.EditUserHandler)
-	group.POST("/withdraw", p.WithdrawHandler)
+	group.GET("/my", p.DetailUserHandler, utils.AuthMiddleware)
+	group.DELETE("/my", p.DeleteUserHandler, utils.AuthMiddleware)
+	group.PATCH("/my", p.EditUserHandler, utils.AuthMiddleware)
+	group.POST("/withdraw", p.WithdrawHandler, utils.AuthMiddleware)
+	group.POST("/admin/register", p.AdminRegisterHandler)
+	group.POST("/login", p.UserLoginHandler)
 }
 
 func (p *userDelivery) FetchUserHandler(c echo.Context) error {
@@ -53,7 +58,7 @@ func (p *userDelivery) FetchUserHandler(c echo.Context) error {
 func (p *userDelivery) StoreUserHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	var req request.UserRequest
+	var req request.RegisterRequest
 
 	if err := c.Bind(&req); err != nil {
 		return helper.ResponseValidationErrorJson(c, "Error binding struct", err.Error())
@@ -76,11 +81,9 @@ func (p *userDelivery) StoreUserHandler(c echo.Context) error {
 func (p *userDelivery) DetailUserHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	id := c.Param("id")
+	id := c.Get("userID").(float64)
 
-	IdInt, _ := strconv.Atoi(id)
-
-	user, err := p.userUsecase.GetByID(ctx, IdInt)
+	user, err := p.userUsecase.GetByID(ctx, int(id))
 	if err != nil {
 		return helper.ResponseErrorJson(c, http.StatusBadRequest, err)
 	}
@@ -92,11 +95,10 @@ func (p *userDelivery) DetailUserHandler(c echo.Context) error {
 func (p *userDelivery) DeleteUserHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	id := c.Param("id")
+	id := c.Get("userID").(float64)
+	fmt.Println("id nya : ", id, "tipenya: ", reflect.TypeOf(id))
 
-	IdInt, _ := strconv.Atoi(id)
-
-	err := p.userUsecase.DestroyUser(ctx, IdInt)
+	err := p.userUsecase.DestroyUser(ctx, int(id))
 	if err != nil {
 		return helper.ResponseErrorJson(c, http.StatusUnprocessableEntity, err)
 	}
@@ -108,7 +110,7 @@ func (p *userDelivery) DeleteUserHandler(c echo.Context) error {
 func (p *userDelivery) EditUserHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	var req request.UserRequest
+	var req request.UpdateRequest
 
 	if err := c.Bind(&req); err != nil {
 		return helper.ResponseValidationErrorJson(c, "Error binding struct", err.Error())
@@ -120,10 +122,9 @@ func (p *userDelivery) EditUserHandler(c echo.Context) error {
 		return helper.ResponseValidationErrorJson(c, "Error validation", errVal)
 	}
 
-	id := c.Param("id")
-	IdInt, _ := strconv.Atoi(id)
+	id := c.Get("userID").(float64)
 
-	user, err := p.userUsecase.EditUser(ctx, IdInt, &req)
+	user, err := p.userUsecase.EditUser(ctx, int(id), &req)
 	if err != nil {
 		return helper.ResponseErrorJson(c, http.StatusUnprocessableEntity, err)
 	}
@@ -132,9 +133,29 @@ func (p *userDelivery) EditUserHandler(c echo.Context) error {
 }
 
 func (p *userDelivery) WithdrawHandler(c echo.Context) error {
+	userID := c.Get("userID").(float64)
 	ctx := c.Request().Context()
 	var req request.WithdrawRequest
+	if err := c.Bind(&req); err != nil {
+		return helper.ResponseValidationErrorJson(c, "Error binding struct", err.Error())
+	}
+	if err := req.Validate(); err != nil {
+		errVal := err.(validation.Errors)
+		return helper.ResponseValidationErrorJson(c, "Error validation", errVal)
+	}
+	fmt.Println("userIDnya ===>>>", int(userID))
+	err := p.userUsecase.WithdrawSalary(ctx, int(userID), &req)
+	if err != nil {
+		return helper.ResponseErrorJson(c, http.StatusUnprocessableEntity, err)
+	}
 
+	return helper.ResponseSuccessJson(c, "Success withdraw salary", "")
+
+}
+
+func (p *userDelivery) AdminRegisterHandler(c echo.Context) error {
+	ctx := c.Request().Context()
+	var req request.AdminRequest
 	if err := c.Bind(&req); err != nil {
 		return helper.ResponseValidationErrorJson(c, "Error binding struct", err.Error())
 	}
@@ -143,11 +164,28 @@ func (p *userDelivery) WithdrawHandler(c echo.Context) error {
 		errVal := err.(validation.Errors)
 		return helper.ResponseValidationErrorJson(c, "Error validation", errVal)
 	}
-	err := p.userUsecase.WithdrawSalary(ctx, &req)
+	admin, err := p.userUsecase.AdminRegister(ctx, &req)
 	if err != nil {
-		return helper.ResponseErrorJson(c, http.StatusUnprocessableEntity, err)
+		return helper.ResponseErrorJson(c, http.StatusUnauthorized, err)
+	}
+	return helper.ResponseSuccessJson(c, "success", admin)
+}
+
+func (p *userDelivery) UserLoginHandler(c echo.Context) error {
+	ctx := c.Request().Context()
+	var req request.LoginRequest
+	if err := c.Bind(&req); err != nil {
+		return helper.ResponseValidationErrorJson(c, "Error binding struct", err.Error())
 	}
 
-	return helper.ResponseSuccessJson(c, "Success withdraw salary", "")
+	if err := req.Validate(); err != nil {
+		errVal := err.(validation.Errors)
+		return helper.ResponseValidationErrorJson(c, "Error validation", errVal)
+	}
+	user, err := p.userUsecase.Login(ctx, &req)
+	if err != nil {
+		return helper.ResponseErrorJson(c, http.StatusUnauthorized, err)
+	}
 
+	return helper.ResponseSuccessJson(c, "success", user)
 }

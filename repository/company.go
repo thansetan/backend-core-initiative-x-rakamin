@@ -53,7 +53,7 @@ func (c *companyRepository) CreateOrUpdate(ctx context.Context, company *model.C
 	return companyModel, nil
 }
 
-func (c *companyRepository) DebitBalance(ctx context.Context, amount int, note string) error {
+func (c *companyRepository) DebitBalance(ctx context.Context, amount, userID int, note string) error {
 	company, err := c.Get(ctx)
 	if err != nil {
 		return errors.New("company data not found")
@@ -70,6 +70,7 @@ func (c *companyRepository) DebitBalance(ctx context.Context, amount int, note s
 		Amount: amount,
 		Note:   note,
 		Type:   model.TransactionTypeDebit,
+		UserID: userID,
 	}).Error; err != nil {
 		return err
 	}
@@ -77,7 +78,7 @@ func (c *companyRepository) DebitBalance(ctx context.Context, amount int, note s
 	return nil
 }
 
-func (c *companyRepository) AddBalance(ctx context.Context, balance int) (*model.Company, error) {
+func (c *companyRepository) AddBalance(ctx context.Context, userID, balance int) (*model.Company, error) {
 	company, err := c.Get(ctx)
 	if err != nil {
 		return nil, errors.New("company data not found")
@@ -92,6 +93,7 @@ func (c *companyRepository) AddBalance(ctx context.Context, balance int) (*model
 		Amount: balance,
 		Note:   "Topup balance company",
 		Type:   model.TransactionsTypeCredit,
+		UserID: userID,
 	}).Error; err != nil {
 		return nil, err
 	}

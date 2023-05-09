@@ -8,6 +8,7 @@ import (
 	"self-payroll/delivery"
 	"self-payroll/repository"
 	"self-payroll/usecase"
+	"self-payroll/utils"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -51,25 +52,26 @@ func (s *server) Run() {
 	positionRepo := repository.NewPositionRepository(s.cfg)
 	positionUsecase := usecase.NewPositionUsecase(positionRepo)
 	positionDelivery := delivery.NewPositionDelivery(positionUsecase)
-	positionGroup := s.httpServer.Group("/positions")
+	positionGroup := s.httpServer.Group("/positions", utils.AuthMiddleware)
 	positionDelivery.Mount(positionGroup)
 
 	companyRepo := repository.NewCompanyRepository(s.cfg)
 	companyUsecase := usecase.NewCompanyUsecase(companyRepo)
 	companyDelivery := delivery.NewCompanyDelivery(companyUsecase)
-	companyGroup := s.httpServer.Group("/company")
+	companyGroup := s.httpServer.Group("/company", utils.AuthMiddleware, utils.CheckIsAdmin)
 	companyDelivery.Mount(companyGroup)
 
-	userRepo := repository.NewUserRepository(s.cfg)
-	userUseCase := usecase.NewUserUsecase(userRepo, positionRepo, companyRepo)
-	userDelivery := delivery.NewUserDelivery(userUseCase)
-	userGroup := s.httpServer.Group("/employee")
-	userDelivery.Mount(userGroup)
 	transactionRepo := repository.NewTransactionRepository(s.cfg)
 	transactionUsecase := usecase.NewTransactionUsecase(transactionRepo)
 	transactionDelivery := delivery.NewTransactionDelivery(transactionUsecase)
-	transactionGroup := s.httpServer.Group("/transactions")
+	transactionGroup := s.httpServer.Group("/transactions", utils.AuthMiddleware)
 	transactionDelivery.Mount(transactionGroup)
+
+	userRepo := repository.NewUserRepository(s.cfg)
+	userUseCase := usecase.NewUserUsecase(userRepo, positionRepo, transactionRepo, companyRepo)
+	userDelivery := delivery.NewUserDelivery(userUseCase)
+	userGroup := s.httpServer.Group("/employee")
+	userDelivery.Mount(userGroup)
 
 	if err := s.httpServer.Start(fmt.Sprintf(":%d", s.cfg.ServicePort())); err != nil {
 		log.Panic(err)

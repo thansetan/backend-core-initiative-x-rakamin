@@ -5,6 +5,7 @@ import (
 	"self-payroll/helper"
 	"self-payroll/model"
 	"self-payroll/request"
+	"self-payroll/utils"
 	"strconv"
 
 	validation "github.com/go-ozzo/ozzo-validation"
@@ -25,10 +26,10 @@ func NewPositionDelivery(positionUsecase model.PositionUsecase) PositionDelivery
 
 func (p *positionDelivery) Mount(group *echo.Group) {
 	group.GET("", p.FetchPositionHandler)
-	group.POST("", p.StorePositionHandler)
+	group.POST("", p.StorePositionHandler, utils.CheckIsAdmin)
 	group.GET("/:id", p.DetailPositionHandler)
-	group.DELETE("/:id", p.DeletePositionHandler)
-	group.PATCH("/:id", p.EditPositionHandler)
+	group.DELETE("/:id", p.DeletePositionHandler, utils.CheckIsAdmin)
+	group.PATCH("/:id", p.EditPositionHandler, utils.CheckIsAdmin)
 }
 
 func (p *positionDelivery) FetchPositionHandler(c echo.Context) error {

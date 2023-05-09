@@ -19,13 +19,13 @@ type (
 	CompanyRepository interface {
 		Get(ctx context.Context) (*Company, error)
 		CreateOrUpdate(ctx context.Context, Company *Company) (*Company, error)
-		AddBalance(ctx context.Context, balance int) (*Company, error)
-		DebitBalance(ctx context.Context, amount int, note string) error
+		AddBalance(ctx context.Context, userID, balance int) (*Company, error)
+		DebitBalance(ctx context.Context, amount, userID int, note string) error
 	}
 
 	CompanyUsecase interface {
 		GetCompanyInfo(ctx context.Context) (*Company, int, error)
 		CreateOrUpdateCompany(ctx context.Context, req request.CompanyRequest) (*Company, int, error)
-		TopupBalance(ctx context.Context, req request.TopupCompanyBalance) (*Company, int, error)
+		TopupBalance(ctx context.Context, userID int, req request.TopupCompanyBalance) (*Company, int, error)
 	}
 )

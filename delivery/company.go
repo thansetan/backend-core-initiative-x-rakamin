@@ -66,6 +66,7 @@ func (comp *companyDelivery) UpdateOrCreateCompanyHandler(e echo.Context) error 
 func (comp *companyDelivery) TopupBalanceHandler(e echo.Context) error {
 	ctx := e.Request().Context()
 
+	userID := e.Get("userID").(int)
 	var req request.TopupCompanyBalance
 
 	if err := e.Bind(&req); err != nil {
@@ -75,7 +76,7 @@ func (comp *companyDelivery) TopupBalanceHandler(e echo.Context) error {
 		errVal := err.(validation.Errors)
 		return helper.ResponseValidationErrorJson(e, "Error validation", errVal)
 	}
-	company, i, err := comp.companyUsecase.TopupBalance(ctx, req)
+	company, i, err := comp.companyUsecase.TopupBalance(ctx, userID, req)
 	if err != nil {
 		return helper.ResponseErrorJson(e, i, err)
 	}
